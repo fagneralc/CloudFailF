@@ -151,6 +151,12 @@ To run a scan against a target:
 python cloudfail.py --target seo.com
 ```
 
+To run a scan against a target using a custom subdomain list:
+
+```
+python cloudfail.py -i subdomains.txt --target seo.com
+```
+
 To run a scan against a target using Tor:
 
 ```
@@ -176,3 +182,16 @@ python cloudfail.py --target seo.com --tor
 * requests
 * win_inet_pton
 * dnspython
+
+## Changelog
+
+<details>
+
+- Updated API call to match dnsdumpster (including API key requirement)
+- Added .env for dnsdumpster API key
+- Changed Docker image to use python-slim instead of Debian
+- Added Docker entrypoint for reusing containers
+- Updated finished message to display found IPs
+- Changed interaction with input files
+
+</details>
