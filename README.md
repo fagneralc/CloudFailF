@@ -4,7 +4,7 @@ Because CloudFail has aged quite a bit, it needs some updates. This fork aims to
 CloudFail is a tactical reconnaissance tool which aims to gather enough information about a target protected by Cloudflare in the hopes of discovering the location of the server. Using Tor to mask all requests, the tool as of right now has 3 different attack phases.
 
 1. Misconfigured DNS scan using DNSDumpster.com.
-2. Scan the Crimeflare.com database.
+2. Scan the Crimeflare database.
 3. Bruteforce scan over 2500 subdomains.
 
 ![Example usage](http://puu.sh/pq7vH/62d56aa41f.png "Example usage")
