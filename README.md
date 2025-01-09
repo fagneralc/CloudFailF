@@ -23,26 +23,36 @@ Most (if not all) distributions come with Python installed already, I recommend 
 <details><summary>Debian based</summary>
 First we need to install pip3 for python3 dependencies:
 
-```$ sudo apt-get install python3-pip```
+```
+sudo apt-get install python3-pip
+```
 
 If pip install fails, try installing `python3-setuptools`
 
-```sudo apt-get install python3-setuptools```
+```
+sudo apt-get install python3-setuptools
+```
 
 Recommendation: Install `python-is-python3`
 
-```sudo apt-get install python-is-python3```
+```
+sudo apt-get install python-is-python3
+```
 
 </details>
 
 <details><summary>Arch based</summary>
 Arch should come with this installed by default, however, this installs both python3 and pip:
 
-```sudo pacman -Sy python-pip```
+```
+sudo pacman -Sy python-pip
+```
 
 If the pip install fails, make sure you have `python-setuptools`:
 
-```sudo pacman -Sy python-setuptools```
+```
+sudo pacman -Sy python-setuptools
+```
 
 In Arch, `python` is `python3` by default.
 
@@ -53,21 +63,29 @@ Once you've confirmed this, let's install the requirements:
 <details><summary>pip</summary>
 First, set up a virtual environment:
 
-```python -m venv venv/```
+```
+python -m venv venv/
+```
 
 Then source it:
 
-```source venv/bin/activate```
+```
+source venv/bin/activate
+```
 
 Now we can install our requirements:
 
-```$ pip install -r requirements.txt```
+```
+pip install -r requirements.txt
+```
 
 </details>
 
 <details><summary>pipx</summary>
 
-```pipx install -r requirements```
+```
+pipx install -r requirements
+```
 
 </details>
 
@@ -81,15 +99,21 @@ Once you have your API key from [My Account](https://dnsdumpster.com/my-account/
 
 To run a scan against a target:
 
-```python cloudfail.py --target seo.com```
+```
+python cloudfail.py --target seo.com
+```
 
 To run a scan against a target using Tor:
 
-```service tor start```
+```
+service tor start
+```
 
 (or if you are using Windows or Mac install vidalia or just run the Tor browser)
 
-```python cloudfail.py --target seo.com --tor```
+```
+python cloudfail.py --target seo.com --tor
+```
 
 > Make sure you're running with Python 3. These commands are done with `python-is-python3` or equivalent.
 
