@@ -7,8 +7,10 @@ RUN pip install -r requirements.txt
 
 COPY . .
 
-RUN mkdir -p data
-RUN chmod +x cloudfail.py
+RUN mkdir -p data && \
+    chmod +x cloudfail.py
+
+ENV $(cat .env | xargs)
 
 ENTRYPOINT ["python", "cloudfail.py"]
 CMD ["--help"]
