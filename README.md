@@ -133,7 +133,7 @@ pip install -r requirements.txt
 <details><summary>pipx</summary>
 
 ```
-pipx install -r requirements
+pipx install -r requirements.txt
 ```
 
 </details>
