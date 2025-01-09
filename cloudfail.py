@@ -16,12 +16,13 @@ import platform
 from colorama import Fore, Style
 from DNSDumpsterAPI import DNSDumpsterAPI
 import dns.resolver
+from typing import Dict, Set
 import collections
 collections.Callable = collections.abc.Callable
 
 
 colorama.init(Style.BRIGHT)
-
+found_ips: Dict[str, str] = {}
 
 def print_out(data, end='\n'):
     datetimestr = str(datetime.datetime.strftime(datetime.datetime.now(), '%H:%M:%S'))
@@ -83,50 +84,47 @@ def subnetwork_to_ip_range(subnetwork):
 
 def dnsdumpster(target):
     print_out(Fore.CYAN + "Testing for misconfigured DNS using dnsdumpster...")
-
+    
     res = DNSDumpsterAPI(False).search(target)
 
     if res['dns_records']['host']:
         for entry in res['dns_records']['host']:
             provider = str(entry['provider'])
-            if "Cloudflare" not in provider:
+            if "Cloudflare" not in provider and not entry['domain'].endswith('cloudflare.com'):
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:HOST] " + Fore.GREEN + "{domain} {ip} {as} {provider} {country}".format(
                         **entry))
+                found_ips[entry['domain']] = entry['ip']
 
     if res['dns_records']['dns']:
         for entry in res['dns_records']['dns']:
             provider = str(entry['provider'])
-            if "Cloudflare" not in provider:
+            if "Cloudflare" not in provider and not entry['domain'].endswith('cloudflare.com'):
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:DNS] " + Fore.GREEN + "{domain} {ip} {as} {provider} {country}".format(
                         **entry))
+                found_ips[entry['domain']] = entry['ip']
 
     if res['dns_records']['mx']:
         for entry in res['dns_records']['mx']:
             provider = str(entry['provider'])
-            if "Cloudflare" not in provider:
+            if "Cloudflare" not in provider and not entry['domain'].endswith('cloudflare.com'):
                 print_out(
                     Style.BRIGHT + Fore.WHITE + "[FOUND:MX] " + Fore.GREEN + "{ip} {as} {provider} {domain}".format(
                         **entry))
+                found_ips[entry['domain']] = entry['ip']
 
 
 def crimeflare(target):
     print_out(Fore.CYAN + "Scanning crimeflare database...")
 
     with open("data/ipout", "r") as ins:
-        crimeFoundArray = []
         for line in ins:
             lineExploded = line.split(" ")
             if lineExploded[1] == args.target:
-                crimeFoundArray.append(lineExploded[2])
-            else:
-                continue
-    if (len(crimeFoundArray) != 0):
-        for foundIp in crimeFoundArray:
-            print_out(Style.BRIGHT + Fore.WHITE + "[FOUND:IP] " + Fore.GREEN + "" + foundIp.strip())
-    else:
-        print_out("Did not find anything.")
+                ip = lineExploded[2].strip()
+                print_out(Style.BRIGHT + Fore.WHITE + "[FOUND:IP] " + Fore.GREEN + "" + ip)
+                found_ips[args.target] = ip
 
 
 def init(target):
@@ -190,28 +188,31 @@ def check_for_wildcard(target):
         #Return False to not return if no wildcard was found
         return False
 
-def subdomain_scan(target, subdomains):
+
+def subdomain_scan(target, _):
     i = 0
     c = 0
     if check_for_wildcard(target):
-        #If has wildcard or input N, return
         print_out(Fore.CYAN + "Scanning finished...")
+        print_summary()
         return
 
-    if subdomains:
-        subdomainsList = subdomains
-    else:
-        subdomainsList = "subdomains.txt"
     try:
-        with open("data/" + subdomainsList, "r") as wordlist:
-            numOfLines = len(open("data/subdomains.txt").readlines())
-            numOfLinesInt = numOfLines
-            numOfLines = str(numOfLines)
-            print_out(Fore.CYAN + "Scanning " + numOfLines + " subdomains (" + subdomainsList + "), please wait...")
+        file_path = args.input if args.input else "data/subdomains.txt"
+            
+        with open(file_path, "r") as wordlist:
+            numOfLines = len(list(wordlist))
+            if numOfLines == 0:
+                print_out(Fore.RED + "Input file is empty")
+                return
+                
+            print_out(Fore.CYAN + f"Scanning {numOfLines} subdomains ({file_path}), please wait...")
+            wordlist.seek(0)
+            
             for word in wordlist:
                 c += 1
-                if (c % int((float(numOfLinesInt) / 100.0))) == 0:
-                    print_out(Fore.CYAN + str(round((c / float(numOfLinesInt)) * 100.0, 2)) + "% complete", '\r')
+                if numOfLines > 100 and (c % int((float(numOfLines) / 100.0))) == 0:
+                    print_out(Fore.CYAN + str(round((c / float(numOfLines)) * 100.0, 2)) + "% complete", '\r')
 
                 subdomain = "{}.{}".format(word.strip(), target)
                 try:
@@ -224,21 +225,31 @@ def subdomain_scan(target, subdomains):
                         i += 1
                         print_out(
                             Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.GREEN + subdomain + " IP: " + ip + " HTTP: " + target_http)
+                        found_ips[subdomain] = ip
                     else:
                         print_out(
                             Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.RED + subdomain + " ON CLOUDFLARE NETWORK!")
                         continue
 
-                except requests.exceptions.RequestException as e:
+                except requests.exceptions.RequestException:
                     continue
-            if (i == 0):
-                print_out(Fore.CYAN + "Scanning finished, we did not find anything, sorry...")
-            else:
-                print_out(Fore.CYAN + "Scanning finished...")
+            print_out(Fore.CYAN + "Scanning finished...")
+            print_summary()
 
     except IOError:
-        print_out(Fore.RED + "Subdomains file does not exist in data directory, aborting scan...")
+        print_out(Fore.RED + f"File {file_path} does not exist, aborting scan...")
         sys.exit(1)
+
+
+def print_summary():
+    """Print summary of found IPs"""
+    if found_ips:
+        print_out("Found IPs:")
+        for domain, ip in found_ips.items():
+            print_out(f"- {domain} > {ip}")
+    else:
+        print_out("Found no IPs.")
+
 
 def update():
     print_out(Fore.CYAN + "Just checking for updates, please wait...")
@@ -265,7 +276,7 @@ logo = """\
  | |   | |/ _ \| | | |/ _` | |_ / _` | | |
  | |___| | (_) | |_| | (_| |  _| (_| | | |
   \____|_|\___/ \__,_|\__,_|_|  \__,_|_|_|
-    v1.0.5                      by m0rtem
+    v1.0.5                      by m0rtem / updated by cnoid
 
 """
 
@@ -277,7 +288,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-t", "--target", help="target url of website", type=str)
 parser.add_argument("-T", "--tor", dest="tor", action="store_true", help="enable TOR routing")
 parser.add_argument("-u", "--update", dest="update", action="store_true", help="update databases")
-parser.add_argument("-s", "--subdomains", help="name of alternate subdomains list stored in the data directory", type=str)
+parser.add_argument("-i", "--input", help="path to input file containing subdomains", type=str)
 parser.set_defaults(tor=False)
 parser.set_defaults(update=False)
 
@@ -313,7 +324,7 @@ try:
     crimeflare(args.target)
 
     # Scan subdomains with or without TOR
-    subdomain_scan(args.target, args.subdomains)
+    subdomain_scan(args.target, None)
 
 except KeyboardInterrupt:
     sys.exit(0)
