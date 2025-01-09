@@ -91,7 +91,7 @@ To run a scan against a target using Tor:
 
 ```python cloudfail.py --target seo.com --tor```
 
-> Please make sure you are running with Python3 and not Python2.*.
+> Make sure you're running with Python 3. These commands are done with `python-is-python3` or equivalent.
 
 
 #### Dependencies
