@@ -11,13 +11,13 @@ CloudFail is a tactical reconnaissance tool which aims to gather enough informat
 
 > Please feel free to contribute to this project. If you have an idea or improvement issue a pull request!
 
-#### Disclaimer
+### Disclaimer
 This tool is a PoC (Proof of Concept) and does not guarantee results.  It is possible to setup Cloudflare properly so that the IP is never released or logged anywhere; this is not often the case and hence why this tool exists.
 This tool is only for academic purposes and testing  under controlled environments. Do not use without obtaining proper authorization
 from the network owner of the network under testing.
 The author(s) bears no responsibility for any misuse of the tool.
 
-#### Install
+### Install
 Most (if not all) distributions come with Python installed already, I recommend installing `python-is-python3` if your distribution has it. However, if you do not have Python installed:
 
 <details><summary>Debian based</summary>
@@ -77,7 +77,7 @@ You'll need to register an account with [DNSDumpster](https://dnsdumpster.com/),
 
 Once you have your API key from [My Account](https://dnsdumpster.com/my-account/) page, simply paste it into the `.env`, no quotation marks.
 
-#### Usage
+### Usage
 
 To run a scan against a target:
 
