@@ -12,5 +12,7 @@ RUN mkdir -p data && \
 
 ENV $(cat .env | xargs)
 
-ENTRYPOINT ["python", "cloudfail.py"]
-CMD ["--help"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
