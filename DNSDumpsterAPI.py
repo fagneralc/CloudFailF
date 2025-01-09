@@ -1,10 +1,6 @@
-"""
-This is the (unofficial) Python API for dnsdumpster.com Website.
-Using this code, you can retrieve subdomains
-
-"""
-
 from __future__ import print_function
+from dotenv import load_dotenv
+import os
 import requests
 import re
 import sys
@@ -17,12 +13,10 @@ class DNSDumpsterAPI(object):
 
     """DNSDumpsterAPI Main Handler"""
 
-    def __init__(self, verbose=False, session=None):
+    def __init__(self, verbose=False):
         self.verbose = verbose
-        if not session:
-            self.session = requests.Session()
-        else:
-            self.session = session
+        load_dotenv()
+        self.api_key = os.getenv('DNSDUMPSTER_API_KEY')
 
     def display_message(self, s):
         if self.verbose:
@@ -65,61 +59,54 @@ class DNSDumpsterAPI(object):
 
 
     def search(self, domain):
-        dnsdumpster_url = 'https://dnsdumpster.com/'
+        api_key = os.getenv('DNSDUMPSTER_API_KEY')
+        if not api_key:
+            print("DNSDUMPSTER_API_KEY environment variable not set", file=sys.stderr)
+            return []
 
-        req = self.session.get(dnsdumpster_url)
-        soup = BeautifulSoup(req.content, 'html.parser')
-        csrf_middleware = soup.findAll('input', attrs={'name': 'csrfmiddlewaretoken'})[0]['value']
-        self.display_message('Retrieved token: %s' % csrf_middleware)
-
-        cookies = {'csrftoken': csrf_middleware}
-        headers = {'Referer': dnsdumpster_url, 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.107 Safari/537.36'}
-        data = {'csrfmiddlewaretoken': csrf_middleware, 'targetip': domain, 'user': 'free'}
-        req = self.session.post(dnsdumpster_url, cookies=cookies, data=data, headers=headers)
-
+        api_url = f'https://api.dnsdumpster.com/domain/{domain}'
+        headers = {'X-API-Key': api_key}
+        
+        req = requests.get(api_url, headers=headers)
         if req.status_code != 200:
             print(
                 "Unexpected status code from {url}: {code}".format(
-                    url=dnsdumpster_url, code=req.status_code),
+                    url=api_url, code=req.status_code),
                 file=sys.stderr,
             )
             return []
 
-        if 'There was an error getting results' in req.content.decode('utf-8'):
-            print("There was an error getting results", file=sys.stderr)
+        try:
+            data = req.json()
+        except:
+            print("Failed to parse JSON response", file=sys.stderr)
             return []
-
-        soup = BeautifulSoup(req.content, 'html.parser')
-        tables = soup.findAll('table')
 
         res = {}
         res['domain'] = domain
-        res['dns_records'] = {}
-        res['dns_records']['dns'] = self.retrieve_results(tables[0])
-        res['dns_records']['mx'] = self.retrieve_results(tables[1])
-        res['dns_records']['txt'] = self.retrieve_txt_record(tables[2])
-        res['dns_records']['host'] = self.retrieve_results(tables[3])
+        res['dns_records'] = {
+            'dns': self._process_records(data.get('a', [])),
+            'mx': self._process_records(data.get('mx', [])),
+            'txt': data.get('txt', []),
+            'host': self._process_records(data.get('ns', []))
+        }
 
-        # Network mapping image
-        try:
-            tmp_url = 'https://dnsdumpster.com/static/map/{}.png'.format(domain)
-            image_data = base64.b64encode(self.session.get(tmp_url).content)
-        except:
-            image_data = None
-        finally:
-            res['image_data'] = image_data
-
-        # XLS hosts.
-        # eg. tsebo.com-201606131255.xlsx
-        try:
-            pattern = r'/static/xls/' + domain + '-[0-9]{12}\.xlsx'
-            xls_url = re.findall(pattern, req.content.decode('utf-8'))[0]
-            xls_url = 'https://dnsdumpster.com' + xls_url
-            xls_data = base64.b64encode(self.session.get(xls_url).content)
-        except Exception as err:
-            print(err)
-            xls_data = None
-        finally:
-            res['xls_data'] = xls_data
+        res['image_data'] = base64.b64decode(data['map']) if 'map' in data else None
+        res['xls_data'] = None
 
         return res
+
+    def _process_records(self, records):
+        results = []
+        for record in records:
+            for ip_data in record.get('ips', []):
+                results.append({
+                    'domain': record.get('host', ''),
+                    'ip': ip_data.get('ip', ''),
+                    'reverse_dns': ip_data.get('ptr', ''),
+                    'as': ip_data.get('asn', ''),
+                    'provider': ip_data.get('asn_name', ''),
+                    'country': ip_data.get('country', ''),
+                    'header': ''
+                })
+        return results
