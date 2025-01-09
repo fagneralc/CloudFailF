@@ -20,6 +20,7 @@ The author(s) bears no responsibility for any misuse of the tool.
 ## Docker
 
 <details><summary>Prerequisites</summary>
+  
 You'll need to register an account with [DNSDumpster](https://dnsdumpster.com/), they have several tiers including a free one which is limited to 50 API calls and 50 records per day. Usually this is within scope.
 
 
