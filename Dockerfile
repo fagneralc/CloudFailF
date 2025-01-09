@@ -1,18 +1,14 @@
-FROM debian:sid
+FROM python:3.9-slim
 
-ENV LANG C.UTF-8
-ENV USER root
-ENV HOME /cloudfail
-ENV DEBIAN_FRONTEND noninteractive
+WORKDIR /app
 
-RUN apt-get update
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-RUN apt-get install -yq python3-pip
+COPY . .
 
-COPY . $HOME
+RUN mkdir -p data
+RUN chmod +x cloudfail.py
 
-WORKDIR $HOME
-
-RUN pip3 install -r requirements.txt
-
-ENTRYPOINT ["python3", "cloudfail.py"]
+ENTRYPOINT ["python", "cloudfail.py"]
+CMD ["--help"]
