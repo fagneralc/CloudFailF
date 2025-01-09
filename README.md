@@ -42,8 +42,7 @@ Next, let's build it:
 docker build -t cloudfail .
 ```
 
-And you'll be ready to go!
-Examples:
+Next, let's run it the first time. Examples:
 
 ```
 docker run --name cloudfail cloudfail:latest --help
@@ -60,10 +59,10 @@ With `.env`:
 docker run --name cloudfail cloudfail:latest -t example.com
 ```
 
-To reuse the container:
+You can now reuse the container:
 
 ```
-docker start -i -t example.com
+docker start -i cloudfail -t example.com
 ```
 
 ## Install
