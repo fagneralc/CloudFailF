@@ -17,6 +17,55 @@ This tool is only for academic purposes and testing  under controlled environmen
 from the network owner of the network under testing.
 The author(s) bears no responsibility for any misuse of the tool.
 
+## Docker
+
+<details><summary>Prerequisites</summary>
+You'll need to register an account with [DNSDumpster](https://dnsdumpster.com/), they have several tiers including a free one which is limited to 50 API calls and 50 records per day. Usually this is within scope.
+
+
+We'll need the API key from the [My Account](https://dnsdumpster.com/my-account/) page.
+</details>
+
+First, clone the repository:
+
+```
+git clone https://github.com/cnoid/CloudFail.git && cd CloudFail/
+```
+
+You have two choices on how to use the API key:
+- Insert it into `.env`
+- Use it as a docker environment command
+
+Next, let's build it:
+
+```
+docker build -t cloudfail .
+```
+
+And you'll be ready to go!
+Examples:
+
+```
+docker run --name cloudfail cloudfail:latest --help
+```
+Without `.env`:
+
+```
+docker run --name cloudfail -e DNSDUMPSTER_API_KEY=aaaabbbbccccddddd cloudfail:latest -t example.com
+```
+
+With `.env`:
+
+```
+docker run --name cloudfail cloudfail:latest -t example.com
+```
+
+To reuse the container:
+
+```
+docker start -i -t example.com
+```
+
 ## Install
 Most (if not all) distributions come with Python installed already, I recommend installing `python-is-python3` if your distribution has it. However, if you do not have Python installed:
 
