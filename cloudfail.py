@@ -302,11 +302,14 @@ if args.tor is True:
     socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, '127.0.0.1', 9050)
     socket.socket = socks.socksocket
     try:
-        tor_ip = requests.get(ipcheck_url)
-        tor_ip = str(tor_ip.text)
+        resp = requests.get(ipcheck_url)
+        if resp.status_code == 200:
+            tor_ip = str(resp.text)
+        else:
+            tor_ip = "unknown"
 
         print_out(Fore.WHITE + Style.BRIGHT + "TOR connection established!")
-        print_out(Fore.WHITE + Style.BRIGHT + "New IP: " + tor_ip)
+        print_out(Fore.WHITE + Style.BRIGHT + "IP in use: " + tor_ip)
 
     except requests.exceptions.RequestException as e:
         print(e, net_exc)
