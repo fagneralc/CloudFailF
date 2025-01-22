@@ -298,7 +298,7 @@ parser.set_defaults(update=False)
 args = parser.parse_args()
 
 if args.tor is True:
-    ipcheck_url = 'http://ipinfo.io/ip'
+    ipcheck_url = 'https://api.ipify.org/'
     socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, '127.0.0.1', 9050)
     socket.socket = socks.socksocket
     try:
