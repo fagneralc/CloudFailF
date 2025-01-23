@@ -1,12 +1,16 @@
-#!/usr/bin/env python3
 from __future__ import print_function
+from lib.util.cache import CacheHandler
+cache_handler = CacheHandler(".cache")
+cache_handler.setup_import_hook()
+from lib.core.DNSDumpsterAPI import DNSDumpsterAPI
+from lib.core import socks
+from lib.util.report import generate_report
 import argparse
 import re
 import sys
 import socket
 import binascii
 import datetime
-import socks
 import requests
 import colorama
 import zipfile
@@ -14,15 +18,16 @@ import os
 import win_inet_pton
 import platform
 from colorama import Fore, Style
-from DNSDumpsterAPI import DNSDumpsterAPI
 import dns.resolver
 from typing import Dict, Set
 import collections
+
 collections.Callable = collections.abc.Callable
 
 
 colorama.init(Style.BRIGHT)
 found_ips: Dict[str, str] = {}
+cloudflare_domains: Set[str] = set()
 
 def print_out(data, end='\n'):
     datetimestr = str(datetime.datetime.strftime(datetime.datetime.now(), '%H:%M:%S'))
@@ -232,6 +237,7 @@ def subdomain_scan(target, _):
                     else:
                         print_out(
                             Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.RED + subdomain + " ON CLOUDFLARE NETWORK!")
+                        cloudflare_domains.add(subdomain)
                         continue
 
                 except requests.exceptions.RequestException:
@@ -292,6 +298,8 @@ parser.add_argument("-t", "--target", help="target url of website", type=str)
 parser.add_argument("-T", "--tor", dest="tor", action="store_true", help="enable TOR routing")
 parser.add_argument("-u", "--update", dest="update", action="store_true", help="update databases")
 parser.add_argument("-i", "--input", help="path to input file containing subdomains", type=str)
+parser.add_argument("-r", "--report", nargs='*', help="generate reports (html, md, ip, sub, all)")
+parser.add_argument("-o", "--output", help="output file for reports")
 parser.set_defaults(tor=False)
 parser.set_defaults(update=False)
 
@@ -302,14 +310,11 @@ if args.tor is True:
     socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5, '127.0.0.1', 9050)
     socket.socket = socks.socksocket
     try:
-        resp = requests.get(ipcheck_url)
-        if resp.status_code == 200:
-            tor_ip = str(resp.text)
-        else:
-            tor_ip = "unknown"
+        tor_ip = requests.get(ipcheck_url)
+        tor_ip = str(tor_ip.text)
 
         print_out(Fore.WHITE + Style.BRIGHT + "TOR connection established!")
-        print_out(Fore.WHITE + Style.BRIGHT + "IP in use: " + tor_ip)
+        print_out(Fore.WHITE + Style.BRIGHT + "New IP: " + tor_ip)
 
     except requests.exceptions.RequestException as e:
         print(e, net_exc)
@@ -317,6 +322,11 @@ if args.tor is True:
 
 if args.update is True:
     update()
+
+def handle_reports(args):
+    if args.report is not None or args.output:
+        report_types = args.report if args.report else []
+        generate_report(args.target, found_ips, report_types, args.output, cloudflare_domains)
 
 try:
 
@@ -331,6 +341,9 @@ try:
 
     # Scan subdomains with or without TOR
     subdomain_scan(args.target, None)
+
+    # Generate report
+    handle_reports(args)
 
 except KeyboardInterrupt:
     sys.exit(0)
