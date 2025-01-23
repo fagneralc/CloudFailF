@@ -270,7 +270,7 @@ Generate all: `-r all`
     - Subdomain output
 - Restructured project
 
-22/01/2025:
+22/01/2025:\
 Thanks to @pykereaper
 
 - [skip DNSDumpster when no API key is set](https://github.com/0xnoid/CloudFail/pull/1)
