@@ -11,6 +11,27 @@ CloudFail is a tactical reconnaissance tool which aims to gather enough informat
 
 > Please feel free to contribute to this project. If you have an idea or improvement issue a pull request!
 
+<dl>
+    <h3>How does this differ from the original?</h3>
+        <dd>
+            Not by much, hopefully.<br />
+            This was forked with the intention of making the project work again, as DNSDumpster had changed the way they handled their API the original no longer worked.<br />
+            We achieved that pretty easily, and with some help improved data sources and error handling. So make sure to read the changelog!
+        </dd>
+    <h3>New Features</h3>
+        <dd>
+            So far there aren't many, but let's change that together.
+            <ul>
+                <li>Report Generator</li>
+                <li>IP List Output</li>
+                <li>Updated Project Structure</li>
+                <li>Updated DNSDumpster API Handling</li>
+                <li>TOR Fix</li>
+                <li>Quality of Life</li>
+            </ul>
+        </dd>
+</dl>
+
 ## Disclaimer
 This tool is a PoC (Proof of Concept) and does not guarantee results.  It is possible to setup Cloudflare properly so that the IP is never released or logged anywhere; this is not often the case and hence why this tool exists.
 This tool is only for academic purposes and testing  under controlled environments. Do not use without obtaining proper authorization
@@ -216,6 +237,17 @@ python cloudfail.py --target seo.com --report all --output seoreport
 
 > Make sure you're running with Python 3. These commands are done with `python-is-python3` or equivalent.
 
+#### Reports
+Reports are now integrated into CloudFail.\
+The templates are under `lib/util/reports/` where you may modify the templates to your choosing, such as stylizing the HTML file to fit your needs.
+
+Reports have 5 output modes: `html`, `md`, `ip`, `sub` and `all`. They're not mutually exclusive and can be used together.\
+Generate an IP list: `-r ip`<br />
+Generate a HTML report: `-r html`<br />
+Generate a MarkDown report: `-r md`<br />
+Generate a Subdomain List: `-r sub`<br />
+Generate all: `-r all`
+
 
 #### Dependencies
 **Python3**
@@ -230,7 +262,21 @@ python cloudfail.py --target seo.com --report all --output seoreport
 
 ## Changelog
 
-<details>
+23/01/2025:
+
+- Added reports
+    - HTML and MarkDown reports
+    - IP list output
+    - Subdomain output
+- Restructured project
+
+22/01/2025:
+Thanks to @pykereaper
+
+- [skip DNSDumpster when no API key is set](https://github.com/0xnoid/CloudFail/pull/1)
+- [Tor: Fix public IP server error](https://github.com/0xnoid/CloudFail/pull/2)
+
+09/01/2025:
 
 - Updated API call to match dnsdumpster (including API key requirement)
 - Added .env for dnsdumpster API key
@@ -238,5 +284,3 @@ python cloudfail.py --target seo.com --report all --output seoreport
 - Added Docker entrypoint for reusing containers
 - Updated finished message to display found IPs
 - Changed interaction with input files
-
-</details>
