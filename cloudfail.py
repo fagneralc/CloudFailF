@@ -24,7 +24,8 @@ import collections
 
 collections.Callable = collections.abc.Callable
 
-
+subwordlist = "/data/subdomains.txt"
+DONTWANTENUMERATE = False
 colorama.init(Style.BRIGHT)
 found_ips: Dict[str, str] = {}
 cloudflare_domains: Set[str] = set()
@@ -126,21 +127,21 @@ def dnsdumpster(target):
 def crimeflare(target):
     print_out(Fore.CYAN + "Scanning crimeflare database...")
 
-    with open("data/ipout", "r") as ins:
+    with open(f'{os.path.dirname(__file__)}/data/ipout', "r") as ins:
         for line in ins:
             lineExploded = line.split(" ")
-            if lineExploded[1] == args.target:
+            if lineExploded[1] == target:
                 ip = lineExploded[2].strip()
                 print_out(Style.BRIGHT + Fore.WHITE + "[FOUND:IP] " + Fore.GREEN + "" + ip)
-                found_ips[args.target] = ip
+                found_ips[target] = ip
 
 
-def init(target):
-    if args.target:
-        print_out(Fore.CYAN + "Fetching initial information from: " + args.target + "...")
+def init(target, liner, DONTWANTENUM=False, isasubdomain: bool=False):
+    if target:
+        print_out(Fore.CYAN + "Fetching initial information from: " + target + "...")
     else:
         print_out(Fore.RED + "No target set, exiting")
-        sys.exit(1)
+        sys.exit(2)
 
     if not os.path.isfile("data/ipout"):
             print_out(Fore.CYAN + "No ipout file found, fetching data")
@@ -148,71 +149,103 @@ def init(target):
             print_out(Fore.CYAN + "ipout file created")
 
     try:
-        ip = socket.gethostbyname(args.target)
+        if "://" in target:
+            target = target[target.find("://")+3:]
+        ip = socket.gethostbyname(target)
     except socket.gaierror:
-        print_out(Fore.RED + "Domain is not valid, exiting")
-        sys.exit(0)
+        print_out(Fore.RED + "Domain is not valid.")
+        if not isasubdomain:
+            choice = ""
+            while (choice != "y" and choice != "n") and liner!=True:
+                choice = input("Want to do a subdomain enumeration on host ? (y/n): ")
+            if choice == "y" and liner==False:
+                with open(f"{os.path.dirname(__file__)}{subwordlist}", "r") as fd:
+                    subdomains = fd.readlines()
+                    for subdomain in subdomains:
+                        newtarget= subdomain.replace("\n", "")+"."+target
+                        run(newtarget, liner, DONTWANTENUM, isasubdomain=True)
+
+
+        return False
 
     print_out(Fore.CYAN + "Server IP: " + ip)
-    print_out(Fore.CYAN + "Testing if " + args.target + " is on the Cloudflare network...")
+    print_out(Fore.CYAN + "Testing if " + target + " is on the Cloudflare network...")
 
     try:
         ifIpIsWithin = inCloudFlare(ip)
 
         if ifIpIsWithin:
-            print_out(Style.BRIGHT + Fore.GREEN + args.target + " is part of the Cloudflare network!")
+            print_out(Style.BRIGHT + Fore.GREEN + target + " is part of the Cloudflare network!")
         else:
-            print_out(Fore.RED + args.target + " is not part of the Cloudflare network, quitting...")
-            sys.exit(0)
+            print_out(Fore.RED + target + " is not part of the Cloudflare network, quitting...")
+            return False
     except ValueError:
         print_out(Fore.RED + "IP address does not appear to be within Cloudflare range, shutting down..")
-        sys.exit(0)
-
+        return False
+    return True
 
 def inCloudFlare(ip):
-    with open('{}/data/cf-subnet.txt'.format(os.getcwd())) as f:
+    with open(f'{os.path.dirname(__file__)}/data/cf-subnet.txt'.format(os.getcwd())) as f:
         for line in f:
             isInNetwork = ip_in_subnetwork(ip, line)
             if isInNetwork:
                 return True
         return False
 
-def check_for_wildcard(target):
+def check_for_wildcard(target, liner, DONTWANTENUMERATE2):
     resolver = dns.resolver.Resolver(configure=False)
     resolver.nameservers = ['1.1.1.1', '1.0.0.1']
     #Unsure how exactly I should test, for now simple appending to target. Don't know how to extract only domain to append *. for wildcard test
     try:
+        if DONTWANTENUMERATE2:
+            return True, False
         #Throws exception if none found
         answer = resolver.resolve('*.' + target)
         #If found, ask user if continue as long until valid answer
         choice = ''
-        while choice != 'y' and choice != 'n':
+        while (choice != 'y' and choice != 'n') and liner!=True:
             choice = input("A wildcard DNS entry was found. This will result in all subdomains returning an IP. Do you want to scan subdomains anyway? (y/n): ")
-        if choice == 'y':
-            return False
+        if choice == 'y' and liner==False:
+            return False, False
         else:
-            return True
-    except:
+            choice = ''
+            while (choice != 'y' and choice != 'n') and liner!=True:
+                choice = input("Want to get questioned about that again? (y/n): ")
+                if choice == 'y' and liner==False:
+                    DONTWANTENUMERATE = True
+            return True, DONTWANTENUMERATE
+    except Exception as exc:
+        print(exc)
         #Return False to not return if no wildcard was found
-        return False
+        return False, False
 
 
-def subdomain_scan(target, _):
+def subdomain_scan(target, liner, DONTWANTENUMERATE1):
     i = 0
     c = 0
-    if check_for_wildcard(target):
+    notwantenumerate, DONTWANTENUMERATE1 = check_for_wildcard(target, liner, DONTWANTENUMERATE1)
+    if notwantenumerate:
         print_out(Fore.CYAN + "Scanning finished...")
         print_summary()
-        return
-
+        return DONTWANTENUMERATE1
+    case = ''
+    if target.count(".") >= 2:
+        return False
+    while (case != 'y' and case != 'n') and liner!=True:
+        case = input(f'Wanna procced with subdomain Enum here?: <enum>.{target}\n')
+        if case == "n":
+            return DONTWANTENUMERATE1
+    if liner:
+        print_out(Fore.YELLOW + "Skipping subdomain enumeration.")
+        return DONTWANTENUMERATE1
     try:
-        file_path = args.input if args.input else "data/subdomains.txt"
+        file_path = args.input if args.input else f'{os.path.dirname(__file__)}{subwordlist}'
             
         with open(file_path, "r") as wordlist:
             numOfLines = len(list(wordlist))
             if numOfLines == 0:
                 print_out(Fore.RED + "Input file is empty")
-                return
+                return DONTWANTENUMERATE1
                 
             print_out(Fore.CYAN + f"Scanning {numOfLines} subdomains ({file_path}), please wait...")
             wordlist.seek(0)
@@ -226,7 +259,10 @@ def subdomain_scan(target, _):
                 try:
                     target_http = requests.get("http://" + subdomain)
                     target_http = str(target_http.status_code)
-                    ip = socket.gethostbyname(subdomain)
+                    try:
+                        ip = socket.gethostbyname(subdomain)
+                    except:
+                        continue
                     ifIpIsWithin = inCloudFlare(ip)
 
                     if not ifIpIsWithin:
@@ -234,6 +270,9 @@ def subdomain_scan(target, _):
                         print_out(
                             Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.GREEN + subdomain + " IP: " + ip + " HTTP: " + target_http)
                         found_ips[subdomain] = ip
+                    elif not ip:
+                        print_out(
+                            Style.BRIGHT + Fore.WHITE + "[INFO:SUBDOMAIN] " + Fore.RED + subdomain + " HOST IS DOWN!")
                     else:
                         print_out(
                             Style.BRIGHT + Fore.WHITE + "[FOUND:SUBDOMAIN] " + Fore.RED + subdomain + " ON CLOUDFLARE NETWORK!")
@@ -255,7 +294,8 @@ def print_summary():
     if found_ips:
         print_out("Found IPs:")
         for domain, ip in found_ips.items():
-            print_out(f"- {domain} > {ip}")
+            if not inCloudFlare(ip):
+                print_out(f"- {domain} > {ip}")
     else:
         print_out("Found no IPs.")
 
@@ -266,26 +306,26 @@ def update():
     if(args.tor == False):
         headers = {'User-Agent': 'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11'}
         r = requests.get("https://www.cloudflare.com/ips-v4", headers=headers, cookies={'__cfduid': "d7c6a0ce9257406ea38be0156aa1ea7a21490639772"}, stream=True)
-        with open('data/cf-subnet.txt', 'wb') as fd:
+        with open(f'{os.path.dirname(__file__)}/data/cf-subnet.txt', 'wb') as fd:
             for chunk in r.iter_content(4000):
                 fd.write(chunk)
     else:
         print_out(Fore.RED + Style.BRIGHT+"Unable to fetch CloudFlare subnet while TOR is active")
     print_out(Fore.CYAN + "Updating Crimeflare database...")
     r = requests.get("https://cf.ozeliurs.com/ipout", stream=True)
-    with open('data/ipout', 'wb') as fd:
+    with open(f'{os.path.dirname(__file__)}/data/ipout', 'wb') as fd:
         for chunk in r.iter_content(4000):
             fd.write(chunk)
 
 # END FUNCTIONS
 
-logo = """\
+logo = """
    ____ _                 _ _____     _ _
   / ___| | ___  _   _  __| |  ___|_ _(_) |
- | |   | |/ _ \\| | | |/ _` | |_ / _` | | |
+ | |   | |/ _ \| | | |/ _` | |_ / _` | | |
  | |___| | (_) | |_| | (_| |  _| (_| | | |
-  \\____|_|\\___/ \\__,_|\\__,_|_|  \\__,_|_|_|
-    v1.0.6                      by m0rtem / updated by 0xnoid
+  \____|_|\___/ \__,_|\__,_|_|  \__,_|_|_|
+    v1.0.7                      by m0rtem / updated by cnoid, Soensh
 
 """
 
@@ -300,6 +340,8 @@ parser.add_argument("-u", "--update", dest="update", action="store_true", help="
 parser.add_argument("-i", "--input", help="path to input file containing subdomains", type=str)
 parser.add_argument("-r", "--report", nargs='*', help="generate reports (html, md, ip, sub, all)")
 parser.add_argument("-o", "--output", help="output file for reports")
+parser.add_argument("-l", "--liner", action="store_true", default=False, help="Not Wizard.")
+parser.add_argument("-d", "--dontenumerate", action="store_true", default=False, help="Not subdomain enum.")
 parser.set_defaults(tor=False)
 parser.set_defaults(update=False)
 
@@ -318,32 +360,41 @@ if args.tor is True:
 
     except requests.exceptions.RequestException as e:
         print(e, net_exc)
-        sys.exit(0)
+        sys.exit(1)
 
 if args.update is True:
     update()
+
+if args.liner:
+    subwordlist = "/data/fastsubs.txt"
 
 def handle_reports(args):
     if args.report is not None or args.output:
         report_types = args.report if args.report else []
         generate_report(args.target, found_ips, report_types, args.output, cloudflare_domains)
 
-try:
+def run(target, DONTWANTENUMERATE, liner, isasubdomain=False):
+    try:
 
-    # Initialize CloudFail
-    init(args.target)
+        # Initialize CloudFail
+        if init(target, liner, DONTWANTENUM=DONTWANTENUMERATE, isasubdomain=isasubdomain):
 
-    # Scan DNSdumpster.com
-    dnsdumpster(args.target)
+            # Scan DNSdumpster.com
+            dnsdumpster(target)
 
-    # Scan Crimeflare database
-    crimeflare(args.target)
+            # Scan Crimeflare database
+            crimeflare(target)
 
-    # Scan subdomains with or without TOR
-    subdomain_scan(args.target, None)
+            # Scan subdomains with or without TOR
+            DONTWANTENUMERATE = subdomain_scan(target, liner, DONTWANTENUMERATE)
 
-    # Generate report
-    handle_reports(args)
+            # Generate report
+            handle_reports(args)
 
-except KeyboardInterrupt:
-    sys.exit(0)
+
+    except KeyboardInterrupt:
+        sys.exit(0)
+
+    return DONTWANTENUMERATE
+
+DONTWANTENUMERATE = run(args.target, args.dontenumerate, args.liner)
