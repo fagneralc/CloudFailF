@@ -173,7 +173,7 @@ Once you have your API key from [My Account](https://dnsdumpster.com/my-account/
  | |   | |/ _ \| | | |/ _` | |_ / _` | | |
  | |___| | (_) | |_| | (_| |  _| (_| | | |
   \____|_|\___/ \__,_|\__,_|_|  \__,_|_|_|
-    v1.0.6                      by m0rtem / updated by cnoid
+    v1.0.6                      by m0rtem / updated by cnoid, Soensh
 
 
 [23:56:02] Initializing CloudFail - the date is: 23/01/2025  
@@ -284,3 +284,12 @@ Thanks to @pykereaper
 - Added Docker entrypoint for reusing containers
 - Updated finished message to display found IPs
 - Changed interaction with input files
+
+14/06/2025
+
+[Fork by SoenSh. Personal use improvings.](https://github.com/fagneralc/CloudFailF)
+
+- Liner arg, skipping subdomain enumeration
+- DonWantEnumerate logic.
+- Some loops
+- Some minors additions

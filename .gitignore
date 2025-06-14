@@ -6,3 +6,4 @@ data/ipout
 .env
 .cache/
 .cache/*
+Pipfile*

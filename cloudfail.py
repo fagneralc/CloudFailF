@@ -22,6 +22,7 @@ import dns.resolver
 from typing import Dict, Set
 import collections
 
+__version__ = "1.1.1"
 collections.Callable = collections.abc.Callable
 
 subwordlist = "/data/subdomains.txt"
@@ -325,7 +326,7 @@ logo = r"""
  | |   | |/ _ \| | | |/ _` | |_ / _` | | |
  | |___| | (_) | |_| | (_| |  _| (_| | | |
   \____|_|\___/ \__,_|\__,_|_|  \__,_|_|_|
-    v1.0.7                      by m0rtem / updated by cnoid, Soensh
+    v1.1.1                      by m0rtem / updated by cnoid, Soensh
 
 """
 
